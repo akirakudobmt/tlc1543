@@ -1,0 +1,291 @@
+C51 COMPILER V7.50   TLCX543                                                               06/20/2007 11:20:19 PAGE 1   
+
+
+C51 COMPILER V7.50, COMPILATION OF MODULE TLCX543
+OBJECT MODULE PLACED IN TlcX543.OBJ
+COMPILER INVOKED BY: D:\Program Files\Keil\C51\BIN\C51.EXE TlcX543.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //MCU:SST89E564RD
+   2          //Freq:11.0592Mhz
+   3          //TLC1543 Mode:Figure 9. Timing for 10-Clock Transfer Using /CS
+   4          //Data:2007-02-12 Copy from Project-TLC2543.And modify it.
+   5          //Data:2007-05-08 Copy from Project-TLC1543.And modify it.
+   6          
+   7          #include <sst89x5x4.h>
+   8          #include <stdio.h>
+   9          
+  10          #ifndef uchar
+  11          #define uchar unsigned char
+  12          #endif
+  13          
+  14          #ifndef uint
+  15          #define uint unsigned int
+  16          #endif
+  17          
+  18          
+  19          #define CHANNEL                 0
+  20          //Setup the reference voltage
+  21          #define VREF                    4.096                   
+  22          //The fellowing option select ADC chips:TLC1543 or TLC2543
+  23          #define CHIP_TLC1543    1
+  24          #define CHIP_TLC2543    2
+  25          //The fellowing option select Boards:FanYeBin or GeJinHuo
+  26          #define BOARD_FYB               1
+  27          #define BOARD_GJH               2
+  28          
+  29          #define KindOfADC               CHIP_TLC1543
+  30          #define KindOfBoard     BOARD_GJH
+  31          
+  32          #if KindOfADC == CHIP_TLC1543
+  33          #define Read_TlcX543(x) Read_Tlc1543(x)
+  34          #else
+              #define Read_TlcX543(x) Read_Tlc2543(x)
+              #endif
+  37           
+  38          extern void WriteCharToAD8801(uchar uChannel,uchar uData);
+  39          
+  40          uint gADCData[14];
+  41          
+  42          void InitSerialPort(void)
+  43          {
+  44   1          SCON  = 0x50;                               /* SCON: mode 1, 8-bit UART, enable rcvr                */
+  45   1          TMOD |= 0x20;               /* TMOD: timer 1, mode 2, 8-bit reload                  */
+  46   1          TH1   = 253;                /* TH1:  reload value for 9600 baud @ 11.0592MHz        */
+  47   1          TR1   = 1;                  /* TR1:  timer 1 run                                    */
+  48   1          TI    = 1;                  /* TI:   set TI to send first char of UART              */
+  49   1      }
+  50          
+  51          void Delay1s(void)
+  52          {
+  53   1              unsigned int i,j;
+  54   1              for(i=0;i<200;i++)
+  55   1                      for(j=0;j<1000;j++){};
+C51 COMPILER V7.50   TLCX543                                                               06/20/2007 11:20:19 PAGE 2   
+
+  56   1      }
+  57          
+  58          
+  59          #if KindOfADC == CHIP_TLC1543
+  60          //If use FanYeBin's board and use TLC1543,please use the fellowing setup
+  61          //Use for FanYeBin
+  62          #if KindOfBoard == BOARD_FYB
+              sbit ADC_CS     = P1^4;
+              #else
+  65          sbit ADC_CS = P1^2;
+  66          sbit DAC_CS = P1^3;                     
+  67          #endif
+  68          
+  69          sbit blMOSI     = P1^5;
+  70          sbit blMISO = P1^6;                     
+  71          sbit blSCLK = P1^7;
+  72          
+  73          unsigned int Read_Tlc1543(uchar uMoSiData)
+  74          {
+  75   1              uchar i;
+  76   1              uint nMiSoData = 0;
+  77   1      
+  78   1      #if KindOfBoard == BOARD_FYB
+                      ADC_CS = 1;
+              #else
+  81   1              ADC_CS = 1;
+  82   1              DAC_CS = 0;
+  83   1      #endif
+  84   1      
+  85   1              blSCLK = 0;
+  86   1              blMISO = 1;
+  87   1              uMoSiData <<= 4;
+  88   1      
+  89   1      #if KindOfBoard == BOARD_FYB
+                      ADC_CS = 0;
+              #else
+  92   1              ADC_CS = 1;
+  93   1              DAC_CS = 1;                             
+  94   1      #endif
+  95   1              
+  96   1              for(i=10;i!=0;i--)
+  97   1              {
+  98   2                      uMoSiData <<= 1;
+  99   2                      blMOSI = CY;
+ 100   2      
+ 101   2                      nMiSoData <<= 1;
+ 102   2                      nMiSoData |= blMISO;
+ 103   2                      blSCLK = 1;
+ 104   2                      ;
+ 105   2                      blSCLK = 0;
+ 106   2              }
+ 107   1      
+ 108   1      #if KindOfBoard == BOARD_FYB
+                      ADC_CS = 1;
+              #else
+ 111   1              ADC_CS = 1;
+ 112   1              DAC_CS = 0;
+ 113   1      #endif
+ 114   1              return nMiSoData;
+ 115   1      }
+ 116          
+ 117          #else
+C51 COMPILER V7.50   TLCX543                                                               06/20/2007 11:20:19 PAGE 3   
+
+              /*
+              //If use GeJinHuo's board and use TLC2543,please use the fellowing setup
+              //Use for GeJinHuo
+              sbit ADC_CS = P1^2;
+              sbit DAC_CS = P1^3;                     
+              
+              sbit blMOSI     = P1^5;
+              sbit blMISO = P1^6;                     
+              sbit blSCLK = P1^7;
+              
+              
+              uint Read_Tlc2543(uchar uMoSiData)
+              {
+                      uchar i;
+                      uint nMiSoData;
+                      
+                      EA = 0;                                 
+              
+                      blMISO = 1;                             //Setup blMISO input.
+                      blSCLK = 0;
+              
+                      ADC_CS = 1;
+                      DAC_CS = 1;                             
+                      
+                      uMoSiData <<= 4;
+              
+                      for(i=0;i<12;i++)
+                      {
+                              nMiSoData <<= 1;
+                              nMiSoData |= blMISO;
+                              uMoSiData <<= 1;
+                              blMOSI = CY;
+                              blMOSI = CY;            //Delay a few time
+                              blMOSI = CY;            //Delay a few time
+                              blSCLK = 1;
+                              blSCLK = 1;
+                              blSCLK = 0;
+                      }
+              
+                      ADC_CS = 1;
+                      DAC_CS = 0;
+                              
+                      nMiSoData &= 0xfff;
+                      EA = 1;                 
+                              
+                      return nMiSoData;
+              }
+              */
+              #endif
+ 167          
+ 168          void Read_ADC(void)
+ 169          {
+ 170   1      
+ 171   1              Read_TlcX543(0x00);
+ 172   1              gADCData[0] = Read_TlcX543(0x01);
+ 173   1              gADCData[1] = Read_TlcX543(0x02);
+ 174   1              gADCData[2] = Read_TlcX543(0x03);
+ 175   1              gADCData[3] = Read_TlcX543(0x04);
+ 176   1              gADCData[4] = Read_TlcX543(0x05);
+ 177   1              gADCData[5] = Read_TlcX543(0x06);
+ 178   1              gADCData[6] = Read_TlcX543(0x07);
+ 179   1              gADCData[7] = Read_TlcX543(0x0b);
+C51 COMPILER V7.50   TLCX543                                                               06/20/2007 11:20:19 PAGE 4   
+
+ 180   1      
+ 181   1              gADCData[0x0b] = Read_TlcX543(0x0c);
+ 182   1              gADCData[0x0c] = Read_TlcX543(0x0d);
+ 183   1              gADCData[0x0d] = Read_TlcX543(0x00);
+ 184   1      
+ 185   1      /*
+ 186   1              Read_Tlc2543(0x00);
+ 187   1              gADCData[0] = Read_Tlc2543(0x01);
+ 188   1              gADCData[1] = Read_Tlc2543(0x02);
+ 189   1              gADCData[2] = Read_Tlc2543(0x03);
+ 190   1              gADCData[3] = Read_Tlc2543(0x04);
+ 191   1              gADCData[4] = Read_Tlc2543(0x05);
+ 192   1              gADCData[5] = Read_Tlc2543(0x06);
+ 193   1              gADCData[6] = Read_Tlc2543(0x07);
+ 194   1              gADCData[7] = Read_Tlc2543(0x0b);
+ 195   1      */
+ 196   1      
+ 197   1      /*
+ 198   1              gADCData[0x0b] = Read_Tlc2543(0x0c);
+ 199   1              gADCData[0x0c] = Read_Tlc2543(0x0d);
+ 200   1              gADCData[0x0d] = Read_Tlc2543(0x00);
+ 201   1      */
+ 202   1      }
+ 203          
+ 204          
+ 205          void main(void)
+ 206          {
+ 207   1              unsigned char i;
+ 208   1              float Temp;
+ 209   1      
+ 210   1              InitSerialPort();
+ 211   1      
+ 212   1      #if KindOfADC == CHIP_TLC1543
+ 213   1              printf("Tlc1543 VER3.06-070619\n");
+ 214   1      #if KindOfBoard == BOARD_FYB
+                      printf("Chip is TLC1543 and use FanYeBin's board\n");
+              #else
+ 217   1              printf("Chip is TLC1543 and use GeJinHuo's board\n");
+ 218   1      #endif
+ 219   1      #else
+                      printf("Tlc2543 VER3.00-070619\n");
+              #endif 
+ 222   1      /*
+ 223   1              WriteCharToAD8801(CHANNEL,40);                          //no use if define FanYeBin
+ 224   1              Delay1s();
+ 225   1      */
+ 226   1      /*
+ 227   1              Read_TlcX543(0x0b);
+ 228   1              gADCData[0x0b] = Read_TlcX543(0x0c);
+ 229   1              gADCData[0x0c] = Read_TlcX543(0x0d);
+ 230   1              gADCData[0x0d] = Read_TlcX543(CHANNEL);
+ 231   1      */
+ 232   1      /*
+ 233   1              Read_Tlc1543(0x0b);
+ 234   1              gADCData[0x0b] = Read_Tlc1543(0x0c);
+ 235   1              gADCData[0x0c] = Read_Tlc1543(0x0d);
+ 236   1              gADCData[0x0d] = Read_Tlc1543(CHANNEL);
+ 237   1      */
+ 238   1              while(1)
+ 239   1              {
+ 240   2                      Delay1s();
+ 241   2                      Read_ADC();
+C51 COMPILER V7.50   TLCX543                                                               06/20/2007 11:20:19 PAGE 5   
+
+ 242   2                      
+ 243   2      //              gADCData[CHANNEL] = Read_TlcX543(CHANNEL);
+ 244   2      //              gADCData[CHANNEL] = Read_Tlc1543(CHANNEL);
+ 245   2      
+ 246   2                      for(i=0;i<8;i++)
+ 247   2                      {
+ 248   3                              Temp = (float)gADCData[i];
+ 249   3                              Temp = Temp * VREF /0x3ff;
+ 250   3                              printf("Chan=%02bu,Hex=%04x,Volt=%03.2f\n",i,gADCData[i],Temp);
+ 251   3                      }
+ 252   2      //              printf("Ch0=%04x,Ch1=%04x,Ch2=%04x,Ch3=%04x,\n",gADCData[0],gADCData[1],gADCData[2],gADCData[3]);
+ 253   2      //              printf("Ch4=%04x,Ch5=%04x,Ch6=%04x,Ch7=%04x\n",gADCData[4],gADCData[5],gADCData[6],gADCData[7]);
+ 254   2                      printf("Ch11=%04x,Ch12=%04x,Ch13=%04x\n",gADCData[0x0b],gADCData[0x0c],gADCData[0x0d]);
+ 255   2                      printf("=====================================================================================");
+ 256   2      
+ 257   2                      printf("\n");
+ 258   2              }
+ 259   1      }
+ 260          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    386    ----
+   CONSTANT SIZE    =    218    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     28       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

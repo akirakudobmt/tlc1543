@@ -1,0 +1,89 @@
+C51 COMPILER V7.50   AD8801                                                                06/20/2007 09:25:54 PAGE 1   
+
+
+C51 COMPILER V7.50, COMPILATION OF MODULE AD8801
+OBJECT MODULE PLACED IN AD8801.OBJ
+COMPILER INVOKED BY: D:\Program Files\Keil\C51\BIN\C51.EXE AD8801.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <sst89x5x4.h>
+   2          #include <stdlib.h>
+   3          #include <stdio.h>
+   4          #include <intrins.h>
+   5          
+   6          #ifndef uchar
+   7          #define uchar           unsigned char
+   8          #endif
+   9          #ifndef uint
+  10          #define uint            unsigned int
+  11          #endif
+  12          #ifndef ulong
+  13          #define ulong           unsigned long
+  14          #endif
+  15          
+  16          //=================================================================================================
+  17          sbit DAC_CS     = P1^3;         
+  18          sbit SCLK       = P1^7;
+  19          sbit SDIN               = P1^6;
+  20          sbit SDOUT              = P1^6;                 
+  21          
+  22          sbit ADC_CS     = P1^2;
+  23          
+  24          
+  25          void WriteCharToAD8801(uchar uChannel,uchar uData)              //SPI写数据
+  26          {
+  27   1              uchar count;
+  28   1      
+  29   1              EA = 0;                                         
+  30   1              
+  31   1              SCLK=0;
+  32   1      
+  33   1              DAC_CS = 0;                             
+  34   1              ADC_CS = 0;                             
+  35   1              
+  36   1              for(count = 0x5;count != 0x00;count--)
+  37   1                      uChannel <<= 1;
+  38   1      
+  39   1              for(count = 0x3;count != 0x00;count--)
+  40   1              {
+  41   2                      uChannel <<= 1;
+  42   2                      SDOUT = CY;  _nop_();_nop_();
+  43   2                      SCLK=1; _nop_();_nop_();//上升沿有效
+  44   2                      SCLK=0; _nop_();_nop_();        
+  45   2              }
+  46   1      
+  47   1              for(count = 0x8;count != 0x00;count--)
+  48   1              {
+  49   2                      uData <<= 1;
+  50   2                      SDOUT = CY; _nop_();_nop_();
+  51   2                      SCLK=1; _nop_();_nop_();//上升沿有效
+  52   2                      SCLK=0; _nop_();_nop_();        
+  53   2              }
+  54   1          SDOUT = 0;
+  55   1      
+C51 COMPILER V7.50   AD8801                                                                06/20/2007 09:25:54 PAGE 2   
+
+  56   1              DAC_CS = 1;
+  57   1              ADC_CS = 0;                                     //2007-04-10 Added      
+  58   1      
+  59   1              SCLK=1;
+  60   1      
+  61   1              EA = 1;                                 //2007-04-10 Added
+  62   1      }
+  63          
+  64          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     67    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
