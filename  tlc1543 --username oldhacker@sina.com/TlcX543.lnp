@@ -1,0 +1,5 @@
+"STARTUP.obj",
+"TlcX543.obj",
+"AD8801.obj" 
+TO "TlcX543" 
+RAMSIZE(256) 
